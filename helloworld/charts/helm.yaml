@@ -1,0 +1,8 @@
+  build:
+    contextDir: helloworld
+    # ref: 7.4.x
+    ref: main
+    uri: 'https://github.com/kabir/eap-openshift-quickstarts-wip'
+    env:
+      - name: MAVEN_ARGS_APPEND
+        value: '-Dcom.redhat.xpaas.repo.jbossorg'
