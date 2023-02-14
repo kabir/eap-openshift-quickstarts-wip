@@ -45,7 +45,7 @@ public class HelloWorldServlet extends HttpServlet {
 
     static String PAGE_HEADER = "<html><head><title>helloworld</title></head><body>";
 
-    static String PAGE_FOOTER = "</body></html>";
+    static String PAGE_FOOTER = "</body><small>This EAP application has successfully been deployed on OpenShift.</small></html>";
 
     @Inject
     HelloService helloService;
