@@ -32,7 +32,7 @@ import javax.servlet.http.HttpServletResponse;
  * </p>
  *
  * <p>
- * The servlet is registered and mapped to /HelloServlet using the {@linkplain WebServlet
+ * The servlet is registered and mapped to / using the {@linkplain WebServlet
  * @HttpServlet}. The {@link HelloService} is injected by CDI.
  * </p>
  *
@@ -40,7 +40,7 @@ import javax.servlet.http.HttpServletResponse;
  *
  */
 @SuppressWarnings("serial")
-@WebServlet("/HelloWorld")
+@WebServlet("/")
 public class HelloWorldServlet extends HttpServlet {
 
     static String PAGE_HEADER = "<html><head><title>helloworld</title></head><body>";
