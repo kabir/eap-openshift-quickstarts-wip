@@ -134,6 +134,10 @@ my-qs        1         1         1            1           2m
 
 Until that happens, if you inspect the pods, you will see the one(s) for the application report `ErrImagePull`. This is a normal waiting state until the pod has been built. Once the above command reports the application has deployed successfully, the status of the application pod(s) will be `Running`.
 
+Links:
+
+* https://docs.openshift.com/container-platform/4.11/nodes/pods/nodes-pods-viewing.html[Viewing pods in a project]
+
 ==== Getting the route of the application
 To get the URL of the route to the application, you can run:
 [source,shell]
