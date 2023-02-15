@@ -1,1 +1,343 @@
-== Running on OpenShift
+:openshiftVersion: 4.11
+
+= Running the quickstarts on OpenShift
+
+In all cases, the Java code for the quickstart remains the same. For this iteration of the quickstarts, we use Helm to configure, build and deploy the application. Previous versions of the quickstarts used templates, now Helm is the preferred mechanism since it is lot easier to use.
+
+//The build uses a Maven profile called openshift which takes care of provisioning the layers.
+
+// TODO mention the builder/runtime images and their purposes
+
+We will first look at deploying an application, and then look at ways to configure an application.
+
+== Deploying a quickstart on Openshift
+At a high level, to deploy a quickstart to OpenShift, we need to:
+
+* Make sure we have the right tooling, and are logged in to OpenShift with the CLI
+* Create/select the OpenShift project we want to deploy our application to
+* Run `helm install myapp -f charts/helm.yaml jboss-eap/eap74` to build and deploy the application
+
+The next sections will go through these steps in more detail.
+
+=== Prerequisites
+* Log in to your Openshift instance via the console
+* Install oc CLI for OpenShift:
+** In the OpenShift console, select *Command line tools* from the help menu and follow the instructions to install it
+* Log in to Openshift in the oc CLI:
+** In the OpenShift console, select *Copy login command* from the menu under your profile name. You will get taken to a page where you can copy the `oc login` command with the correct value to do so in a terminal window.
+* Install the helm CLI client as outlined https://access.redhat.com/documentation/en-us/openshift_container_platform/{openshiftVersion}/html/building_applications/working-with-helm-charts#installing-helm[here].
+* Add the jboss-eap Helm chart by following the instructions in https://jbossas.github.io/eap-charts/
+
+We have now Installed the `oc` and `helm` CLI tools, logged in to OpenShift via oc, and installed the JBoss EAP Helm chart in our repository. The specific Helm chart we will be using is called `jboss-eap/eap74`.
+
+Links to further information:
+
+* https://access.redhat.com/documentation/en-us/openshift_container_platform/{openshiftVersion}/html/cli_tools/openshift-cli-oc[OpenShift CLI (oc)]
+* https://access.redhat.com/documentation/en-us/openshift_container_platform/{openshiftVersion}/html/building_applications/working-with-helm-charts[Working with Helm Charts]
+
+=== Selecting/creating a project
+
+An OpenShift project is just a namespace, which contains a collection of Openshift resources. OpenShift resources are things like:
+
+* Application deployments
+* ConfigMaps/Secrets
+* Services
+* Routes
+* Many other things!
+
+Depending on the OpenShift setup you are using, you might want to set up a project. In other cases (e.g. the Red Hat OpenShift sandbox) you will not have permissions to create a project, and have to use the one provided to you.
+
+To see the currently active project:
+[source,shell]
+----
+oc project
+----
+
+To switch the currently active project:
+[source,shell]
+----
+oc project <name>
+----
+
+To create a new project, and switch to it:
+[source,shell]
+----
+oc new-project <name>
+----
+
+Once you have selected the active project, all `oc` commands will by default be against that project.
+
+Links to further information:
+
+* https://access.redhat.com/documentation/en-us/openshift_container_platform/{openshiftVersion}/html/cli_tools/openshift-cli-oc#cli-using-cli_cli-developer-commands[Using the OpenShift CLI]
+
+=== Deploying
+All quickstarts will have a yaml file, known as a Helm chart, to deploy the application with Helm. Generally this will be in `charts/helm.yaml` under each quickstart's directory. In some cases quickstarts will contain more than one to cover different cases. In this case the quickstart will point out the differences in the configuration between the files.
+
+The primary concerns of the Helm chart are to:
+
+* Create an image containing the built application into an EAP runtime image
+** We specify the GitHub repository of the code containing the application
+** We might need to configure the build happening when instaling
+* Provide configuration needed for the image. For example we might need to:
+** Set some environment variables for the application to work
+** Read values from secrets or configmaps and set those as environment variables in the application
+** Configure the number of replicas to use for the application ports
+
+The `charts/helm.yaml` file for each quickstart essentially overrides values set in the https://github.com/jbossas/eap-charts/blob/main/charts/eap74/values.yaml file. This in turn is used to configure what is installed in OpenShift. charts/helm.yaml may also add values not reflected in the values.yaml file.
+
+A simple `charts/helm.yaml` is shown below.
+[source,yaml]
+----
+build:
+  uri: https://github.com/kabir/eap-openshift-quickstarts-wip
+  ref: main
+  contextDir: helloworld
+deploy:
+  replicas: 4
+----
+We will explain the contents of this in more detail in the <<_deploying>> section. For now, the shown Helm chart contains two top level sections:
+
+* deploy - contains settings used to build application, and the runtime image containing it
+* build - contains settings affecting the pod(s) running the application
+
+In this case we are specifying the Git repository containing the application, the branch to use, and that we want to use the `helloworld` directory inside that for our application. In the `deploy` section, we are specifying that we want 4 pods running the application.
+
+All other values come from the https://github.com/jbossas/eap-charts/blob/main/charts/eap74/values.yaml file.
+
+If you would like to see all the configuration elements to customize your deployment you can use the following command:
+
+[source,shell]
+----
+helm show readme jboss-eap/eap74
+----
+
+To install the application into OpenShift, go to the directory containing the quickstart and run:
+[source,shell]
+----
+helm install my-qs -f charts/helm.yaml jboss-eap/eap74
+----
+
+`my-qs` is the name we give to this instance of the quickstart install. This is used as a prefix to the names of the build configs, builds, application deployment, services, routes, image streams and other OpenShift resources created as a result of installing the Helm Chart. The remainder of the examples on this page assume this name was used, and should be substituted with what you decided to call your application.
+
+Following the helm install, it will take a few minutes for the application to become available. You can monitor the progress of the application with the following command:
+
+[source,shell]
+----
+oc get deployment my-qs -w
+NAME         DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+my-qs        1         1         1            0           12s
+...
+my-qs        1         1         1            1           2m
+----
+
+==== Getting the route of the application
+To get the URL of the route to the application, you can run:
+[source,shell]
+----
+oc get route my-qs -o jsonpath="{.spec.host}"
+----
+
+==== Uninstalling the application
+
+To uninstall the application, run:
+[source,shell]
+----
+helm uninstall my-app
+----
+
+== Configuring the Application
+In this section, we will cover typical ways to configure your application with Helm, and with other mechanisms such as the CLI. Each example will link to a quickstart where this approach is used (if such a quickstart exists), and conversely the individual quickstarts will link to the sections here in order to elaborate on the underlying concept.
+
+We will use minimal examples, just showing the yaml from the Helm chart for what is needed specifically to enable the configuration being shown. To see a fuller example,  see the Helm Chart in the indicated quickstart.
+
+=== Setting environment variables
+
+Environment variables are a widely used way to configure applications on the cloud. We can specify this in our Helm chart
+[source,shell]
+----
+build:
+  env:
+    MY_BUILD_ENV_VAR: hello
+    OTHER_BUILD_ENV_VAR: world
+deploy:
+  env:
+    MY_DEPLOY_ENV_VAR: hello
+    OTHER_DEPLOY_ENV_VAR: world
+----
+
+The above helm chart will use the environment variables `MY_BUILD_ENV_VAR=hello` and `OTHER_BUILD_ENV_VAR=world` for the build stage, and the variables `MY_DEPLOY_ENV_VAR=hello` and `OTHER_DEPLOY_ENV_VAR=world` for the deploy stage.
+
+The EAP 7.4 launch scripts contained in the images have several environment variables with special meaning, used to further configure things like clustering, logging, database connections and so on.
+
+Links:
+
+* https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html/getting_started_with_jboss_eap_for_openshift_container_platform/reference_information#doc-wrapper[EAP on OpenShift Reference] chapter - this contains the environment variables understood by the build and deploy stages. Although the format in this guide is different, the variables can be put into the Helm chart as shown above.
+
+Quickstarts:
+* link:todo-backend/[todo-backend]
+
+=== Selecting the number of application pods
+
+[source,shell]
+----
+deploy:
+  replicas: 2
+----
+Unless specified, one application pod will be created by default when doing `helm install`. In the shown example, two will be created instead.
+
+=== Using CLI Scripts
+CLI scripts are useful for configuring the application server management model before the server is booted. Note that as containers are inherently stateless, configuration changes from added CLI scripts only take effect during the life of the server.
+
+There are a few steps involved in adding a CLI script in OpenShift.
+
+First we need a `.s2i/environment` file in our quickstart directory:
+[source,shell]
+----
+# This mounts the ../src/main/scripts/s2i directory for s2i
+S2I_IMAGE_SOURCE_MOUNTS=src/main/scripts/s2i
+----
+
+The `S2I_IMAGE_SOURCE_MOUNTS` environment variable name is reserved, and the above example results in the `src/main/scripts/s2i` folder inside the quickstart directory getting mounted by the s2i process.
+
+The `src/main/scripts/s2i` folder contains a few files:
+[source,shell]
+----
+- cli.openshift.properties
+- install.sh
+- initialize-server.cli
+- postconfigure.sh
+----
+
+Let’s look at these in the order of how the helm install process uses them.
+
+First we have the `install.sh` script which is used when building the application image. This is used to copy across the contents of the `src/main/scripts/s2i` folder (the `injected_dir` parameter in this script gets set to the value of the `S2I_IMAGE_SOURCE_MOUNTS` environment variable we set in the `.s2i/environment` file earlier) to the `$JBOSS_HOME/extensions` folder inside the application image:
+[source,shell]
+----
+#!/bin/sh
+
+set -x
+echo "Running microprofile-reactive-messaging-kafka/install.sh"
+injected_dir=$1
+echo "Copying "$1" directory to $JBOSS_HOME/extensions"
+cp -rf ${injected_dir} $JBOSS_HOME/extensions
+----
+
+Now the remaining files are of interest to the running application, or the ‘deploy’ stage of the Helm charts.
+
+The application server launch scripts look for a `$JBOSS_HOME/extensions/postconfigure.sh` file, and if present runs that before starting the server. In this case we will have one, since we copied it from `src/main/scripts/s2i/postconfigure.sh` in the previous steps. The contents of `src/main/scripts/s2i/postconfigure.sh` to invoke a CLI script are:
+
+[source,shell]
+----
+#!/usr/bin/env bash
+
+# This script (postconfigure.sh) is executed during
+# launch of the application server (not during the build)
+# This script is expected to be copied to
+# $JBOSS_HOME/extensions/ folder by script install.sh
+
+echo "Configuring server with CLI"
+[ "x$SCRIPT_DEBUG" = "xtrue" ] && cat "${JBOSS_HOME}/extensions/initialize-server.cli"
+"${JBOSS_HOME}"/bin/jboss-cli.sh \
+--file="${JBOSS_HOME}/extensions/initialize-server.cli" \
+--properties="${POSTCONFIGURE_PROPERTIES_FILE}"
+----
+
+This invokes the CLI passing in the copied CLI script location and path to the CLI properties. The CLI properties location is stored in `POSTCONFIGURE_PROPERTIES_FILE` which is populated when the container launches with the location inside the running container of the copied `src/main/scripts/s2i/cli.openshift.properties` and simply contains the following CLI property referencing the standard standalone-openshift.xml file used for EAP s2i deployments:
+[source,shell]
+----
+serverConfig=standalone-openshift.xml
+----
+
+Finally, the contents of `src/main/scripts/s2i/initialize-server.cli` (which is copied to `$JBOSS_HOME/extensions/initialize-server.cli` inside the container) is:
+[source,shell]
+----
+# Comes from the cli.openshift.properties file
+
+set serverConfig=standalone-openshift.xml
+
+embed-server --std-out=echo  --server-config=$serverConfig
+
+/system-property=added-by-postconfigure:add(value=hello)
+
+quit
+----
+The above example CLI script simply adds  a system property called `added-by-postconfigure` to the management model. As you can modify anything in the management model using this approach, it is a very powerful way to customize your installation on launch.
+
+//Links:
+//Link 1
+//Link 2
+//
+//Example quickstarts:
+//QS 1
+//QS 2
+
+=== Adding Files to the application image
+It can be useful to add files containing static content, keystores and other things to the image containing the server.
+
+The steps to do this are the same as when copying the CLI script into the server image, except of course we don’t invoke the CLI script and the `postconfigure.sh` file may choose a different target location within the server image.
+
+
+=== Using ConfigMaps and Secrets
+There are a few ways you can use values from ConfigMaps and secrets in your applications. But first we need to add a ConfigMap/secret to OpenShift! This is independent of calling `helm install`, and in most cases we need to add the ConfigMap/secret before installing the application since the application will be using values from the ConfigMap/secret.
+
+This section will first show how to add a ConfigMap to OpenShift, and then how to add a secret to OpenShift., Then we will show a few approaches to get these values into your application containers.
+
+Note that while using ConfigMaps and Secrets are very similar, the difference is that entries in secrets are encrypted while in ConfigMaps they are not. We will cover a few basic use cases here, see the links for more information.
+
+Links:
+* https://docs.openshift.com/container-platform/4.11////nodes/pods/nodes-pods-configmaps.html
+* https://docs.openshift.com/container-platform/4.11////nodes/pods/nodes-pods-secrets.html#nodes-pods-secrets-about_nodes-pods-secrets[Understanding secrets]
+
+==== Adding a ConfigMap to OpenShift
+We have the following YAML stored as `my-config-map.yaml`:
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: my-config-map
+data:
+ cmPropertyA: "From config map A"
+ config.map.propertyB: "From config map B"
+----
+We add this to OpenShift with the following command:
+
+[source,shell]
+----
+oc apply -f my-config-map.yaml
+----
+
+==== Adding a Secret to OpenShift
+We have the following YAML stored as `my-secret.yaml`:
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: my-config-map
+data:
+ # 'This is from secret A' encoded with base64
+ secretPropertyA: VGhpcyBpcyBmcm9tIHNlY3JldCBB
+ # 'From secret B' encoded with base64
+ secret.propertyB: RnJvbSBzZWNyZXQgQg==
+----
+We add this to OpenShift with the following command:
+
+[source,shell]
+----
+oc apply -f my-secret.yaml
+----
+
+==== Mapping individual values from a ConfigMap/Secret to environment variables
+In some cases we might just be interested in a handful of entries from the ConfigMap or secret.
+
+
+==== Mapping all values from a ConfigMap/Secret to environment variables
+TODO
+
+==== Mapping entries from a ConfigMap/Secret to files in a mounted directory
+TODO
+
+==== Mapping entries from a mounted directory via the MicroProfile Config subsystem
+TODO
