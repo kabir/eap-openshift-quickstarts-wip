@@ -1,1 +1,0 @@
-# eap-openshift-quickstarts-wip

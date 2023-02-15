@@ -1,0 +1,25 @@
+= EAP Quickstarts for OpenShift
+
+Welcome to the EAP Quickstarts for OpenShift!
+
+This is a small, curated collection of Quickstarts to complement the main ones found at https://github.com/jboss-developer/jboss-eap-quickstarts, and in the Red Hat product portal at https://access.redhat.com.
+
+The intent of these quickstarts is not to explain in-depth how the Java code works. It expects the users to have knowledge of the concepts used in the simple Java examples. Instead, the focus will be on how to configure the applications to work on OpenShift.
+
+The content of this repository is divided into two parts:
+
+* The individual quickstart examples, which each have a README, as well as code examples and configuration for OpenShift. See below for an index of these.
+* A link:RUNNING_ON_OPENSHIFT.adoc[central guide] which contains the details of how to get set up and to deploy your application on OpenShift. It also contains a list of 'recipes' for common configuration mechanisms. The individual quickstart READMEs will refer back to this central guide to explain the configuration options used.
+
+The quickstarts in this repository are:
+
+[cols="1,1"]
+|===
+|Quickstart |Summary
+
+|link:./helloworld/[helloworld]
+|A simple Hello World application. This is the most straight forward example to get started on OpenShift.
+
+|link:./todo-backend/[todo-backend]
+|An application using a PostgreSQL database.
+|===
