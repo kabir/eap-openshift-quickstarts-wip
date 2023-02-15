@@ -1,1 +1,28 @@
-== Hello World
+= Hello World
+
+
+== The Application
+The `src/main` folder contains a simple 'Hello world' style Java application using a servlet and a CDI bean.
+
+== Deploying the Quickstart
+Make sure you have done all the link:../RUNNING_ON_OPENSHIFT.adoc#_prerequisites[prerequisites] and link:../RUNNING_ON_OPENSHIFT.adoc#_selectingcreating_a_project[selected/created a project].
+
+Then install the Helm chart contained under `charts/helm.yaml` to install the applcation into OpenShift.
+[source,shell]
+----
+helm install helloworld -f charts/helm.yaml jboss-eap/eap74
+----
+See the link:../RUNNING_ON_OPENSHIFT.adoc#_deploying_with_helm[Deploying with Helm] section for information about when the application will be ready.
+
+== Running the application
+
+To see the output of the application, you can run the following command:
+
+[source,shell]
+----
+curl https://$(oc get route helloworld --template='{{ .spec.host }}')
+----
+
+== Explaining the application configuration
+
+This application is extremely simple, so apart from the standard information in link:../RUNNING_ON_OPENSHIFT.adoc#_introduction_to_helm_charts[Introduction to Helm Charts], link:./charts/helm.yaml[./charts/helm.yaml] contains no additional information.

@@ -71,8 +71,8 @@ Links to further information:
 
 * https://access.redhat.com/documentation/en-us/openshift_container_platform/{openshiftVersion}/html/cli_tools/openshift-cli-oc#cli-using-cli_cli-developer-commands[Using the OpenShift CLI]
 
-=== Deploying
-All quickstarts will have a yaml file, known as a Helm chart, to deploy the application with Helm. Generally this will be in `charts/helm.yaml` under each quickstart's directory. In some cases quickstarts will contain more than one to cover different cases. In this case the quickstart will point out the differences in the configuration between the files.
+=== Introduction to Helm charts
+All quickstarts will have a yaml file, known as a Helm chart, used to deploy the application with Helm. Generally this will be in `charts/helm.yaml` under each quickstart's directory. In some cases quickstarts will contain more than one to cover different cases. In this case the quickstart will point out the differences in the configuration between the files.
 
 The primary concerns of the Helm chart are to:
 
@@ -96,7 +96,7 @@ build:
 deploy:
   replicas: 4
 ----
-We will explain the contents of this in more detail in the <<_deploying>> section. For now, the shown Helm chart contains two top level sections:
+We will explain the contents of this in more detail in the <<_deploying_with_helm>> section. For now, the shown Helm chart contains two top level sections:
 
 * deploy - contains settings used to build application, and the runtime image containing it
 * build - contains settings affecting the pod(s) running the application
@@ -112,6 +112,7 @@ If you would like to see all the configuration elements to customize your deploy
 helm show readme jboss-eap/eap74
 ----
 
+=== Deploying with Helm
 To install the application into OpenShift, go to the directory containing the quickstart and run:
 [source,shell]
 ----
@@ -130,6 +131,8 @@ my-qs        1         1         1            0           12s
 ...
 my-qs        1         1         1            1           2m
 ----
+
+Until that happens, if you inspect the pods, you will see the one(s) for the application report `ErrImagePull`. This is a normal waiting state until the pod has been built. Once the above command reports the application has deployed successfully, the status of the application pod(s) will be `Running`.
 
 ==== Getting the route of the application
 To get the URL of the route to the application, you can run:
