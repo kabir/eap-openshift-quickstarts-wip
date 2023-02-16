@@ -1,0 +1,28 @@
+# setup from cli.*.properties
+set serverConfig=${serverConfig}
+
+embed-server --std-out=echo  --server-config=$serverConfig
+
+echo "Adding the 'rhoas' secret volume mount as a MicroProfile Config source..."
+
+/subsystem=microprofile-config-smallrye/config-source=rhosak-binding:add(dir={path=/etc/config/rhoas})
+
+echo "Adding the MicroProfile Config entries mapping the secret values..."
+
+# Append $HOSTNAME to the group id, to make the group id unique on each pod. Otherwise only one consumer in the group
+# receives each message. Now that they are different groups, they all receive all messages.
+
+/subsystem=microprofile-config-smallrye/config-source=reactive-messaging-properties:add(properties={\
+mp.messaging.connector.smallrye-kafka.group.id=microprofile-reactive-messaging-kafka-group-id-${HOSTNAME},\
+mp.messaging.connector.smallrye-kafka.bootstrap.servers=${KAFKA_HOST},\
+mp.messaging.connector.smallrye-kafka.security.protocol=SASL_SSL,\
+mp.messaging.connector.smallrye-kafka.sasl.mechanism=PLAIN,\
+mp.messaging.connector.smallrye-kafka.sasl.jaas.config="\n\
+org.apache.kafka.common.security.plain.PlainLoginModule required\n\
+username=\"${RHOAS_SERVICE_ACCOUNT_CLIENT_ID}\"\n\
+password=\"${RHOAS_SERVICE_ACCOUNT_CLIENT_SECRET}\";"\
+}, ordinal=500)
+
+echo "initialize-server.cli script finished"
+
+quit

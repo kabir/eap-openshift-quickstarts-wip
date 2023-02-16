@@ -1,0 +1,21 @@
+# This configuration file can be used to build and deploy the rhosak
+# quickstart on OpenShift with the Helm Chart for EAP.
+build:
+  contextDir: rhosak
+  ref: main
+  uri: 'https://github.com/kabir/eap-openshift-quickstarts-wip'
+  mode: s2i
+  s2i:
+    galleonLayers:
+      - cloud-server
+      - microprofile-reactive-messaging-kafka
+deploy:
+  replicas: 1
+  volumes:
+    - name: rhoas
+      secret:
+        secretName: rhoas
+  volumeMounts:
+    - name: rhoas
+      mountPath: /etc/config/rhoas
+      readOnly: true

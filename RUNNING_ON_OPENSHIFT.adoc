@@ -325,13 +325,10 @@ quit
 ----
 The above example CLI script simply adds  a system property called `added-by-postconfigure` to the management model. As you can modify anything in the management model using this approach, it is a very powerful way to customize your installation on launch.
 
-//Links:
-//Link 1
-//Link 2
-//
-//Example quickstarts:
-//QS 1
-//QS 2
+Quickstarts:
+
+* link:./rhosak/[rhosak]
+
 
 === Adding files to the application image
 It can be useful to add files containing static content, keystores and other things to the image containing the server.
@@ -442,10 +439,84 @@ Quickstarts:
 TODO
 
 ==== Mapping entries from a ConfigMap/Secret to files in a mounted directory
-TODO
+OpenShift allows you to mount configmaps and secrets as a directory where each entry becomes a file. The name of the file is the name of the entry, and the contents of each file is the value of the entry.
+
+[source,yaml]
+----
+deploy:
+  replicas: 1
+  volumes:
+    - name: configmap-volume
+      configMap:
+        name: my-config-map
+    - name: secret-volume
+      secret:
+        secretName: my-secret
+  volumeMounts:
+    - name: configmap-volume
+      mountPath: /etc/config/from-configmap
+      readOnly: true
+    - name: secret-volume
+      mountPath: /etc/config/from-secret
+      readOnly: true
+----
+
+Here we are creating two `volumes` entries:
+
+* `secret-volume` - mounts the secret `my-config-map` which we created <<_adding_a_configmap_to_openshift,earlier>>.
+* `secret-volume` - mounts the secret `my-secret` which we created <<_adding_a_secret_to_openshift,earlier>>
+
+Then we tell it to create two `volumeMounts` entries each referencing a volume:
+
+* `configmap-volume` - this references the `configmap-volume` volume, and maps it under `/etc/config/from-configmap`. Using the <<_adding_a_configmap_to_openshift,earlier configmap>>, the result will be two files in the application pod:
+** `/etc/config/from-configmap/cmPropertyA` - containing `From config map A`
+** `/etc/config/from-configmapf/config.map.propertyB` - containing `From config map B`
+* `secret-volume` - this references the `secret-volume` volume, and maps it under `/etc/config/from-secret`. Using the <<#_adding_a_secret_to_openshift,earlier secret>>, the result will be two files in the application pod:
+** `/etc/config/from-secret/secretPropertyA` - containing `VGhpcyBpcyBmcm9tIHNlY3JldCBB`, which is 'This is from secret A' encoded with base64.
+** `/etc/config/from-secret/secret.propertyB` - containing `RnJvbSBzZWNyZXQgQg==`, which is 'From secret B' encoded with base64
+
+Now our application pods can read values from the indicated files. This is especially useful in conjunction with <<Mapping entries from a ConfigMap/Secret to files in a mounted directory>>
+
+Quickstarts:
+
+* link:./rhosak/[rhosak]
+
 
 ==== Mapping entries from a mounted directory via the MicroProfile Config subsystem
-TODO
+
+If we have a directory containing files from a secret or a configmap, we can create an entry in the MicroProfile Config subsystem to make them easier available to our application via MicroProfile Config. **Note:** This is an EAP XP 4 feature only, and is not available in vanilla JBoss EAP 7.4.z.
+
+To do this, we need to add a CLI script. See <<Using CLI scripts, here>> for how to add a CLI script to adjust the configuration of the server before OpenShift boots it up. The script we will use for this example differs from the earlier script.
+
+Using the <<Mapping entries from a ConfigMap/Secret to files in a mounted directory,secret from earlier>>, we can provide the server with the following CLI script:
+
+[source]
+----
+# setup from cli.*.properties
+set serverConfig=${serverConfig}
+embed-server --std-out=echo  --server-config=$serverConfig
+
+/subsystem=microprofile-config-smallrye/config-source=from-my-secret:add(dir={path=/etc/config/from-secret})
+
+quit
+----
+
+This adds the `/etc/config/from-secret` directory as a MicroProfile Config config source. Files from this directory are be used as MicroProfile Config properties. So doing this in an application class:
+
+[source, java]
+----
+public class Example {
+  @Inject
+  @ConfigProperty(name = "secret.propertyB")
+  String secretBValue;
+}
+----
+
+the field `secretBValue` will be populated with 'From secret B' which is the base64 decoded value of the contents of the `/etc/config/from-secret/secret.propertyB` file.
+
+Quickstarts:
+
+* link:./rhosak/[rhosak]
 
 === Configuring logging
 TODO

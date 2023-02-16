@@ -1,0 +1,151 @@
+= RHOSAK Quickstart
+
+**Note:** This Quickstart uses the Helm chart `jboss-eap/eap-xp4` (providing EAP XP 4 MicroProfile functionality) rather than `jboss-eap/eap74` (vanilla EAP 7.4) used by a lot of the other quickstarts.
+
+
+Make sure you have done all the link:../RUNNING_ON_OPENSHIFT.adoc#_prerequisites[prerequisites] and link:../RUNNING_ON_OPENSHIFT.adoc#_selectingcreating_a_project[selected/created a project].
+
+Additionally, you will need to download and install the `rhoas` CLI to interact with RHOSAK. The steps to do so can be found https://access.redhat.com/documentation/en-us/red_hat_openshift_service_registry/1/guide/b9d4f17b-923f-49a6-b513-954399fc2ddd[here].
+
+== The Application
+
+The application is a simple REST, CDI and MicroProfile Reactive Messaging application. A REST endpoint allows us to POST data, which is sent to Kafka. The `@Incoming` annotated method in the application receives the data from Kafka and exposes it via another GET REST endpoint.
+
+Kafka is provided by RHOSAK. There is a link:./src/main/resources/META-INF/microprofile-config.properties[META-INF/microprofile-config.properties] which configures Reactive Messaging for use with a locally running, unsecured, Kafka instance
+
+== Starting RHOSAK
+This following section sets up RHOSAK for use with our application. It may look long at first, but the steps are quite simple:
+
+* Start a Kafka instance on RHOSAK
+* Create a topic to send/receive messages on
+* Get config to connect to Kafka
+* Create a service account and grant access to publish and consume messages
+* Combine the information returned from the previous two steps and create a secret
+
+
+Now we will look at the above steps in more detail.
+
+=== Start a RHOSAK Kafka instance
+Log in and create your application. Substitute `kabir-kafka` with your own name here and below. The name must be unique on the sandbox.
+
+```shell
+rhoas login
+rhoas kafka create --name kabir-kafka
+```
+This will take a few minutes. Once the Status of `rhoas context status kafka` is `ready` we can proceed to the next step.
+
+=== Create a topic
+Switch the context to our Kafka instance, and create a topic called `testing`.
+````shell
+rhoas context set-kafka --name kabir-kafka
+rhoas kafka topic create --name testing
+````
+
+=== Get config to connect to Kafka
+Generate the config to connect to Kafka
+```shell
+# Stores its data in rhoas.env
+rhoas generate-config --type=env
+```
+
+If you look at the created `rhoas.env` file, you will see it contains an environment variable `KAFKA_HOST`. This contains the URL of the created Kafka instance.
+
+=== Service account and permissions
+Create a service account. You will need to give it a name and specify to use `env` as the format of the name credentials file.
+```shell
+rhoas service-account create
+? Short Description: kabir-account
+? Credentials file format: env
+? Credentials file location /Users/kabir/sourcecontrol/quickstarts/.env
+
+✔️  Service account created successfully with ID "xxxxxxxxx-1234-1234-1234-xxxxxxxxxxxx"
+✔️  Credentials saved to /Users/kabir/sourcecontrol/quickstarts/.env
+
+You can now set access rules for your current services.
+To grant full access to produce and consume Kafka messages, enter this command:
+
+ $ rhoas kafka acl grant-access --producer --consumer --service-account xxxxxxxxx-1234-1234-1234-xxxxxxxxxxxx --topic all --group all
+
+To grant read and write access to the currently selected Service Registry instance, enter this command:
+
+ $ rhoas service-registry role add --role=manager --service-account xxxxxxxxx-1234-1234-1234-xxxxxxxxxxxx
+```
+Grant access as prompted in the output of the `rhoas service-acount create` command:
+```shell
+rhoas kafka acl grant-access --producer --consumer --service-account xxxxxxxxx-1234-1234-1234-xxxxxxxxxxxx --topic all --group all --yes
+```
+
+If you look at the created `.env` file, you will find a few entries. The ones we are interested in are `RHOAS_SERVICE_ACCOUNT_CLIENT_ID` and `RHOAS_SERVICE_ACCOUNT_CLIENT_SECRET`. These allow us to log in to the Kafka instance.
+
+=== Combine information and create secret
+Combine the outputs of the two previous commands into rhoas.env
+```shell
+cat .env >> rhoas.env
+```
+
+
+Finally we create a secret called `rhoas` with the contents of the rhoas.env file from above
+```shell
+oc create secret generic rhoas --from-env-file=./rhoas.env
+```
+
+Creating a secret from an env file, is another way of adding a secret from link:../RUNNING_ON_OPENSHIFT.adoc#_adding_a_secret_to_openshift[Adding a secret to OpenShift].
+
+== Deploying the quickstart
+As mentioned we are using a different Helm chart as the basis for this Quickstart. It is the `jboss-eap/eap-xp4` one rather than the usual `jboss-eap/eap74` one. `jboss-eap/eap-xp4` augments the `jboss-eap/eap74` chart by adding MicroProfile functionality.
+
+Thus the command to install it becomes:
+
+[source, shell]
+----
+helm install rhosak -f charts/helm.yaml jboss-eap/eap-xp4
+----
+
+See the link:../RUNNING_ON_OPENSHIFT.adoc#_deploying_with_helm[Deploying with Helm] section for information about when the application will be ready.
+
+== Running the application
+
+Send a few messages to Kafka by running the following POST commands:
+[source,shell]
+----
+curl -X POST https://$(oc get route rhosak --template='{{ .spec.host }}')/one
+curl -X POST https://$(oc get route rhosak --template='{{ .spec.host }}')/two
+----
+These messages will be received almost immediately by the `@Incoming` annotated method which caches the received data which can be got from the GET REST endpoint:
+[source,shell]
+----
+curl https://$(oc get route rhosak --template='{{ .spec.host }}')
+----
+which should return
+[source,shell]
+----
+["one","two"]
+----
+
+== Explaining the 'simple' setup application configuration
+
+=== Helm chart
+The Helm chart for the application can be found at link:./charts/helm.yaml[charts/helm.yaml].
+
+First let us examine the `build` section of the Helm chart.
+
+It says to use the `rhosak` directory under the quickstart as outlined in link:../RUNNING_ON_OPENSHIFT.adoc#_introduction_to_helm_charts[Introduction to Helm Charts].
+
+We specify that we want to provision the `cloud-server` and `microprofile-reactive-messaging-kafka` layers as mentioned in link:../RUNNING_ON_OPENSHIFT.adoc#_trimming_the_provisioned_server[Trimming the provisioned server] section.
+
+In the `deploy` section, we mount a directory to via `volumes`/`volumeMounts`. As described in link:../RUNNING_ON_OPENSHIFT.adoc#_mapping_entries_from_a_configmapsecret_to_files_in_a_mounted_directory[Mapping entries from a ConfigMap/Secret to files in a mounted directory] files in `/etc/config/rhoas` directory will contain the entries in the `rhoas` secret we created before.
+
+The MicroProfile Reactive Messaging implementation uses MicroProfile Config to configure the connections to Kafka, so we use a CLI script to add the mappings. See link:../RUNNING_ON_OPENSHIFT.adoc#_using_cli_scripts[Using CLI scripts] for how to add a CLI script to be run before the server starts in the pod. The link:./src/main/scripts/initialize-server.cli[initialize-server.cli] CLI script first adds the mounted `/etc/config/rhoas` directory as a config source in the MicroProfile Config subsystem.
+
+Next it adds several properties, many of which are prefixed with `mp.messaging.connector.smallrye-kafka.`, to expand on the hard-coded values in the link:./src/main/resources/META-INF/microprofile-config.properties[META-INF/microprofile-config.properties] file contained in the application. If a property exists in both the set added by the CLI script and in `META-INF/microprofile-config.properties`, the ones from the CLI script take precedence due to the `ordinal` for these values having a higher value.
+
+In the CLI script we override the location of the server with a value from our secret. Also, we configure the application to use SASL over SSL to connect to the server, and set values to authenticate with the server. The seen `${KAFKA_HOST}`, `${RHOAS_SERVICE_ACCOUNT_CLIENT_ID}` and `${RHOAS_SERVICE_ACCOUNT_CLIENT_SECRET}` get substituted with values from the `rhoas` secret we created earlier, via the mounted `/etc/config/rhoas` directory, and the MicroProfile config source we created which reads its values from that directory.
+
+You can read more about the properties used in the  link:https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html/using_jboss_eap_xp_4.0.0/reference#microprofile_reactive_messaging_reference[MicroProfile Reactive Messaging] documentation.
+
+To understand better how the properties affect the connections to Apache Kafka, see the Apache Kafka link:https://kafka.apache.org/documentation/#configuration[documentation]. The prefixes `mp.messaging.connector.smallrye-kafka.`, `mp.messaging.outgoing.<channel-name>.` and `mp.messaging.incoming.<channel-name>.` get stripped off by the MicroProfile Reactive Messaging implementation before the properties are passed to the Kafka connector.
+
+
+
+
+

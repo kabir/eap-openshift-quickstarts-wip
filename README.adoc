@@ -22,4 +22,7 @@ The quickstarts in this repository are:
 
 |link:./postgres/[postgres]
 |An application using a PostgreSQL database. This uses enviroment variables, both hard coded and from secrets. It also shows how to include the EAP datasources feature pack, and how to trim the server with Galleon layers.
+
+|link:./rhosak/[rhosak]
+|An application using Kafka provided by RHOSAK. This is not a pure EAP 7.4 application, rather it uses MicroProfile functionality provided by EAP XP 4. This uses a secret mounted in a volume mount which in turn is provided as a ConfigSource in the MicroProfile config subsystem. This config overrides and augments the hardcoded configuration in the application. It also shows how to trim the server with Galleon layers.
 |===
