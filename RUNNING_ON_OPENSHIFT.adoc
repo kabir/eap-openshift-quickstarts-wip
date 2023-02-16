@@ -179,10 +179,56 @@ The EAP 7.4 launch scripts contained in the images have several environment vari
 
 Links:
 
-* https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html/getting_started_with_jboss_eap_for_openshift_container_platform/reference_information#doc-wrapper[EAP on OpenShift Reference] chapter - this contains the environment variables understood by the build and deploy stages. Although the format in this guide is different, the variables can be put into the Helm chart as shown above.
+* https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html/getting_started_with_jboss_eap_for_openshift_container_platform/reference_information#doc-wrapper[EAP on OpenShift Reference] chapter
+** contains the environment variables understood by the build and deploy stages. Although the format in this guide is different, the variables can be put into the Helm chart as shown above.
 
 Quickstarts:
-* link:todo-backend/[todo-backend]
+
+* link:../postgres/[postgres]
+
+=== Trimming the provisioned server
+The `s2i` section under `build` can be used to choose the parts of the server we want to provision. This can have the effect of drastically shrinking the image.
+
+[source, yaml]
+----
+build:
+  s2i:
+    galleonLayers: cloud-server
+----
+
+The `galleonLayers` entry contains a list of the Galleon layers we want our server to install. If not specified, a full server is provisioned.
+
+Links:
+
+* https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html/getting_started_with_jboss_eap_for_openshift_container_platform/capability-trimming-eap-foropenshift_default#doc-wrapper[Capability Trimming in EAP on OpenShift]
+** The `build/s2i/galleonLayers` entry used above has the same effect as the `GALLEON_PROVISION_LAYERS` mentioned in the documentation
+** This document contains a list of the available layers
+
+Quickstarts:
+
+* link:../postgres/[postgres]
+
+=== Adding Galleon feature packs
+You may wish to add to the functionality to the server by implementing a Galleon Feature Pack. A likely more common scenario is to use the EAP datasources feature pack to add modules and configuration to configure database drivers and datasources.
+
+[source,yaml]
+----
+build:
+  s2i:
+    featurePacks:
+      - org.jboss.eap:eap-datasources-galleon-pack:7.4.0.GA-redhat-00003
+    galleonLayers: cloud-server,postgresql-datasource
+----
+
+The `featurePacks` entry adds `org.jboss.eap:eap-datasources-galleon-pack:7.4.0.GA-redhat-00003` as a feature pack. Since the core server is unaware of the full list of layers in this feature pack, we need to specify the layers to provision in  `galleonLayers` as outlined in <<_trimming_the_provisioned_server>>. In this case `cloud-server` comes from the core server, and `postgresql-datasource` comes from our added feature pack.
+
+Links:
+
+// TODO Switch to real link once documented
+* https://github.com/jbossas/eap-datasources-galleon-pack/tree/EAP_7.4.0.GA-dev
+** The EAP datasources feature pack for EAP 7.4
+* https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html-single/getting_started_with_jboss_eap_for_openshift_container_platform/index#provisioning-user-developed-layers-eap-foropenshift_default[Provisioning User-developed Layers in JBoss EAP]
+** This https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html-single/getting_started_with_jboss_eap_for_openshift_container_platform/index#providing-custom-galleon-feature-pack-s2i_default[section] is the most relevant, and the `build/s2i/featurePacks` used above has the same effect as `GALLEON_PROVISION_FEATURE_PACKS` in the documentation.
 
 === Selecting the number of application pods
 
@@ -193,7 +239,7 @@ deploy:
 ----
 Unless specified, one application pod will be created by default when doing `helm install`. In the shown example, two will be created instead.
 
-=== Using CLI Scripts
+=== Using CLI scripts
 CLI scripts are useful for configuring the application server management model before the server is booted. Note that as containers are inherently stateless, configuration changes from added CLI scripts only take effect during the life of the server.
 
 There are a few steps involved in adding a CLI script in OpenShift.
@@ -279,7 +325,7 @@ The above example CLI script simply adds  a system property called `added-by-pos
 //QS 1
 //QS 2
 
-=== Adding Files to the application image
+=== Adding files to the application image
 It can be useful to add files containing static content, keystores and other things to the image containing the server.
 
 The steps to do this are the same as when copying the CLI script into the server image, except of course we don’t invoke the CLI script and the `postconfigure.sh` file may choose a different target location within the server image.
@@ -347,4 +393,7 @@ TODO
 TODO
 
 ==== Mapping entries from a mounted directory via the MicroProfile Config subsystem
+TODO
+
+=== Configuring logging
 TODO

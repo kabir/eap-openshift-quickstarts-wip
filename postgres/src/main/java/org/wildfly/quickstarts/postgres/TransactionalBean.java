@@ -19,23 +19,36 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.wildfly.quickstarts.todos;
+
+package org.wildfly.quickstarts.postgres;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
+import javax.transaction.Transactional;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
-import javax.ejb.Local;
 
-@Local
-public interface ToDoDAO {
+@ApplicationScoped
+public class TransactionalBean {
 
-    List<ToDo> findAll();
+    @PersistenceContext(unitName = "example")
+    EntityManager em;
 
-    Optional<ToDo> findById(Long id);
+    @Transactional
+    public void storeValue(String value) {
+        ExampleEntity entity = new ExampleEntity();
+        entity.setValue(value);
+        em.persist(entity);
+    }
 
-    void remove(ToDo todo);
-
-    void insert(ToDo todo);
-
-    Optional<ToDo> update(Long id, ToDo todo);
+    @Transactional
+    public List<String> getAllValues() {
+        TypedQuery<ExampleEntity> query = em.createQuery("SELECT p from ExampleEntity p", ExampleEntity.class);
+        List<String> values = query.getResultList().stream().map(v -> v.getValue()).collect(Collectors.toList());
+        return values;
+    }
 }

@@ -19,24 +19,36 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.wildfly.quickstarts.todos;
 
-import javax.ejb.Stateful;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Produces;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceContextType;
+package org.wildfly.quickstarts.postgres;
 
-@Stateful
-@RequestScoped
-public class Resources {
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
 
-    @PersistenceContext(type = PersistenceContextType.EXTENDED)
-    private EntityManager em;
+/**
+ * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
+ */
+@Entity
+public class ExampleEntity {
+    private Long id;
+    private String value;
 
-    @Produces
-    public EntityManager getEm() {
-        return em;
+    @Id
+    @GeneratedValue
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
     }
 }

@@ -1,0 +1,68 @@
+= Postgres Quickstart
+
+== The Application
+The `src/main` folder contains a simple application exposing a REST endpoint which allows users to post data. Posted data is stored in a database. Then there is an endpoint allowing users to get data stored in the database.
+
+Before deploying the quickstart we need to start a database on OpenShift. Since when setting up a database on OpenShift we are dealing with sensitive information sunch as database login credentials, we will do this two ways:
+
+. *Simple setup* - This hardcodes the username and password in the application Halm chart, as well as when starting the database. Note this is *not* recommended for production.
+. *Using secrets* - This will first store the database credentials in an Openshift secret, and then we will reference this data from our application Helm chart. Similarly, when starting the database we will use the information from the secret.
+
+Do not mix the steps for these two steps, they are different approaches.
+
+== Simple setup
+
+Make sure you have done all the link:../RUNNING_ON_OPENSHIFT.adoc#_prerequisites[prerequisites] and link:../RUNNING_ON_OPENSHIFT.adoc#_selectingcreating_a_project[selected/created a project].
+
+=== Starting the database in the 'simple setup'
+Fist we need to set up a PostgreSQL instance:
+```shell
+oc new-app --name database-server \
+     --env POSTGRESQL_USER=admin \
+     --env POSTGRESQL_PASSWORD=admin \
+     --env POSTGRESQL_DATABASE=sampledb \
+     postgresql:latest
+```
+This will create an OpenShift `Deployment` called `database-server` from the image `postgresql:latest`, and expose a service called `database-server`. A service is a host name that can be used internally in the cluster. In other words, from inside the OpenShift project we will be able to access our database server via `database-server` rather than needing to know its IP address.
+
+The `POSTGRESQL_USER`, `POSTGRESQL_PASSWORD` and `POSTGRESQL_DATABASE` environment variables used are understood by the `postgresql:latest` image and set the username/password and the name of the database to use.
+
+The above command will start the database quickly.
+
+=== Deploying the 'simple setup' quickstart
+Install the Helm chart contained under `charts/helm-simple.yaml` to install the application into OpenShift.
+[source,shell]
+----
+helm install postgres-simple -f charts/helm-simple.yaml jboss-eap/eap74
+----
+See the link:../RUNNING_ON_OPENSHIFT.adoc#_deploying_with_helm[Deploying with Helm] section for information about when the application will be ready.
+
+=== Running the 'simple setup' application
+
+Create a few entries in the database by running the following POST commands:
+[source,shell]
+----
+curl -X POST https://$(oc get route postgres-simple --template='{{ .spec.host }}')/one
+curl -X POST https://$(oc get route postgres-simple --template='{{ .spec.host }}')/two
+----
+Then we can read the entries we added
+[source,shell]
+----
+curl https://$(oc get route postgres-simple --template='{{ .spec.host }}')
+----
+which should return
+[source,shell]
+----
+["one","two"]
+----
+
+=== Explaining the 'simple setup' application configuration
+link:./charts/helm-simple.yaml[./charts/helm-simple.yaml] contains the configuration for the application.
+
+First let us examine the `build` section of the Helm chart.
+
+First say to use the `postgres` directory under the quickstart as outlined in link:../RUNNING_ON_OPENSHIFT.adoc#_introduction_to_helm_charts[Introduction to Helm Charts].
+
+We specify that we want to use the EAP datasources feature pack and provision the `cloud-server` and `postgresql-datasource` layers as mentioned in link:../RUNNING_ON_OPENSHIFT.adoc#_trimming_the_provisioned_server[Trimming the provisioned server] and link:../RUNNING_ON_OPENSHIFT.adoc#_adding_galleon_feature_packs[Adding Galleon Feature Packs] sections.
+
+The `POSTGRESQL_DRIVER_VERSION` environment variable sets the version of the PostgreSQL driver as explained in link:../RUNNING_ON_OPENSHIFT.adoc#_setting_environment_variables[Setting environment variables].

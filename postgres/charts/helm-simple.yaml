@@ -1,0 +1,30 @@
+# This configuration file can be used to build and deploy the todo-backend
+# quickstart on OpenShift with the Helm Chart for EAP.
+build:
+  contextDir: postgres
+  # ref: 7.4.x
+  ref: main
+  uri: 'https://github.com/kabir/eap-openshift-quickstarts-wip'
+  mode: s2i
+  s2i:
+    featurePacks:
+      - org.jboss.eap:eap-datasources-galleon-pack:7.4.0.GA-redhat-00003
+    galleonLayers: cloud-server,postgresql-datasource
+  env:
+    - name: POSTGRESQL_DRIVER_VERSION
+      value: '42.2.19'
+deploy:
+  env:
+    # Env vars to connect to PostgreSQL DB
+    - name: POSTGRESQL_DATABASE
+      value: sampledb
+    - name: POSTGRESQL_USER
+      value: admin
+    - name: POSTGRESQL_PASSWORD
+      value: admin
+    - name: POSTGRESQL_DATASOURCE
+      value: qs-ds
+    - name: POSTGRESQL_SERVICE_HOST
+      value: database-server
+    - name: POSTGRESQL_SERVICE_PORT
+      value: "5432"
