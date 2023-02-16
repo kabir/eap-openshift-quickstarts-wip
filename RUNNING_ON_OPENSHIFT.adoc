@@ -404,6 +404,10 @@ Which will return:
 VGhpcyBpcyBmcm9tIHNlY3JldCBB
 ----
 
+Quickstarts:
+
+* link:./postgres[postgres]
+
 
 ==== Mapping individual values from a ConfigMap/Secret to environment variables
 In some cases we might just be interested in a handful of entries from the ConfigMap or secret, and want to map them to an environment variable.
@@ -430,6 +434,9 @@ The above snippet sets an environment variable in the `build` section called `EN
 
 It also sets an environment variable in the `deploy` section called `ENV_VAR_FROM_SECRET`. This is configured to read the `secretPropertyA` value from the `my-secret` secret we created <<_adding_a_secret_to_openshift, earlier>>. Thus `ENV_VAR_FROM_SECRET` will have the value `This is from secret A`.
 
+Quickstarts:
+
+* link:./postgres[postgres]
 
 ==== Mapping all values from a ConfigMap/Secret to environment variables
 TODO

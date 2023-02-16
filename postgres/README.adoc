@@ -75,12 +75,12 @@ In the `deploy section` we hardcode environment variables to connect to the data
 == Using secrets setup
 
 === Adding our secret
-link:./openshift-secret.yaml[openshift-secret.yaml] contains a secret called `postgres-db-secret` with base64 encoded values of the most sensitive data needed to connect to our database. See link:../RUNNING_ON_OPENSHIFT.adoc#_adding_a_secret_to_openshift[Adding a secret to OpenShift] for more information.
+link:./postgres-db-secret.yaml[openshift-secret.yaml] contains a secret called `postgres-db-secret` with base64 encoded values of the most sensitive data needed to connect to our database. See link:../RUNNING_ON_OPENSHIFT.adoc#_adding_a_secret_to_openshift[Adding a secret to OpenShift] for more information.
 
 To add this secret, run:
 [source, yaml]
 ----
-oc apply -f openshift-secret.yaml
+oc apply -f postgres-db-secret.yaml
 ----
 
 === Deploying the 'using secrets' setup quickstart
@@ -136,5 +136,5 @@ oc delete service database-server
 To delete the secret (for the 'using secrets' flavour of this quickstart):
 [source,shell]
 ----
-oc delete secret postgresql-secret
+oc delete secret postgres-db-secret
 ----
