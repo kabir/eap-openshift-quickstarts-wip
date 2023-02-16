@@ -20,6 +20,6 @@ The quickstarts in this repository are:
 |link:./helloworld/[helloworld]
 |A simple Hello World application. This is the most straight forward example to get started on OpenShift.
 
-|link:./todo-backend/[todo-backend]
-|An application using a PostgreSQL database.
+|link:./postgres/[postgres]
+|An application using a PostgreSQL database. This uses enviroment variables, both hard coded and from secrets. It also shows how to include the EAP datasources feature pack, and how to trim the server with Galleon layers.
 |===

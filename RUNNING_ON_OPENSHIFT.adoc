@@ -161,16 +161,20 @@ We will use minimal examples, just showing the yaml from the Helm chart for what
 === Setting environment variables
 
 Environment variables are a widely used way to configure applications on the cloud. We can specify this in our Helm chart
-[source,shell]
+[source,yaml]
 ----
 build:
   env:
-    MY_BUILD_ENV_VAR: hello
-    OTHER_BUILD_ENV_VAR: world
+    - name: MY_BUILD_ENV_VAR
+      value: hello
+    - name: OTHER_BUILD_ENV_VAR
+      value: world
 deploy:
   env:
-    MY_DEPLOY_ENV_VAR: hello
-    OTHER_DEPLOY_ENV_VAR: world
+    - name: MY_DEPLOY_ENV_VAR
+      value: hello
+    - name: OTHER_DEPLOY_ENV_VAR
+      value: world
 ----
 
 The above helm chart will use the environment variables `MY_BUILD_ENV_VAR=hello` and `OTHER_BUILD_ENV_VAR=world` for the build stage, and the variables `MY_DEPLOY_ENV_VAR=hello` and `OTHER_DEPLOY_ENV_VAR=world` for the deploy stage.
@@ -229,6 +233,10 @@ Links:
 ** The EAP datasources feature pack for EAP 7.4
 * https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html-single/getting_started_with_jboss_eap_for_openshift_container_platform/index#provisioning-user-developed-layers-eap-foropenshift_default[Provisioning User-developed Layers in JBoss EAP]
 ** This https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.4/html-single/getting_started_with_jboss_eap_for_openshift_container_platform/index#providing-custom-galleon-feature-pack-s2i_default[section] is the most relevant, and the `build/s2i/featurePacks` used above has the same effect as `GALLEON_PROVISION_FEATURE_PACKS` in the documentation.
+
+Quickstarts:
+
+* link:../postgres/[postgres]
 
 === Selecting the number of application pods
 
@@ -361,14 +369,16 @@ We add this to OpenShift with the following command:
 oc apply -f my-config-map.yaml
 ----
 
+This results in a ConfigMap called `my-config-map` with the entries `cmPropertyA` and `config.map.propertyB`.
+
 ==== Adding a Secret to OpenShift
 We have the following YAML stored as `my-secret.yaml`:
 [source,yaml]
 ----
 apiVersion: v1
-kind: ConfigMap
+kind: Secret
 metadata:
- name: my-config-map
+ name: my-secret
 data:
  # 'This is from secret A' encoded with base64
  secretPropertyA: VGhpcyBpcyBmcm9tIHNlY3JldCBB
@@ -376,14 +386,49 @@ data:
  secret.propertyB: RnJvbSBzZWNyZXQgQg==
 ----
 We add this to OpenShift with the following command:
-
 [source,shell]
 ----
 oc apply -f my-secret.yaml
 ----
 
+This results in a secret called `my-secret` with the entries `secretPropertyA` and `secret.propertyB`.
+
+An example of how to base64 encode a value is:
+[source,shell]
+----
+echo -n 'This is from secret A' | base64
+----
+Which will return:
+[source,shell]
+----
+VGhpcyBpcyBmcm9tIHNlY3JldCBB
+----
+
+
 ==== Mapping individual values from a ConfigMap/Secret to environment variables
-In some cases we might just be interested in a handful of entries from the ConfigMap or secret.
+In some cases we might just be interested in a handful of entries from the ConfigMap or secret, and want to map them to an environment variable.
+
+[source,yaml]
+----
+build:
+  env:
+    - name: ENV_VAR_FROM_CONFIG_MAP
+      valueFrom:
+        configMapKeyRef:
+          key: cmPropertyA
+          name: my-config-map
+deploy:
+  env:
+    - name: ENV_VAR_FROM_SECRET
+      valueFrom:
+        secretKeyRef:
+          key: secretPropertyA
+          name: my-secret
+----
+
+The above snippet sets an environment variable in the `build` section called `ENV_VAR_FROM_CONFIG_MAP`. This is configured to read the `cmPropertyA` value from the `my-config-map` ConfigMap that we created <<_adding_a_configmap_to_openshift, earlier>>. Thus `ENV_VAR_FROM_CONFIG_MAP` will have the value `From config map A`.
+
+It also sets an environment variable in the `deploy` section called `ENV_VAR_FROM_SECRET`. This is configured to read the `secretPropertyA` value from the `my-secret` secret we created <<_adding_a_secret_to_openshift, earlier>>. Thus `ENV_VAR_FROM_SECRET` will have the value `This is from secret A`.
 
 
 ==== Mapping all values from a ConfigMap/Secret to environment variables

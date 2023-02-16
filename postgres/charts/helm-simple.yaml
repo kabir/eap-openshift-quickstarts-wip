@@ -5,7 +5,6 @@ build:
   # ref: 7.4.x
   ref: main
   uri: 'https://github.com/kabir/eap-openshift-quickstarts-wip'
-  mode: s2i
   s2i:
     featurePacks:
       - org.jboss.eap:eap-datasources-galleon-pack:7.4.0.GA-redhat-00003
