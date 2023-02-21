@@ -63,7 +63,7 @@
             <!-- When built in OpenShift the 'openshift' profile will be
                 used when invoking mvn. -->
             <!-- Use this profile for any OpenShift specific customization
-                your app will ne    ed. -->
+                your app will need. -->
             <id>openshift</id>
             <build>
                 <plugins>
