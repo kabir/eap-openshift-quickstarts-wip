@@ -1,0 +1,4 @@
+build:
+  uri: https://github.com/kabir/eap-openshift-quickstarts-wip
+  ref: main
+  contextDir: helloworld
